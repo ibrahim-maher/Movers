@@ -11,6 +11,7 @@ class StorageKeys {
   static const String userId = 'user_id';
   static const String userEmail = 'user_email';
   static const String userName = 'user_name';
+  static const String rememberMe = 'remember_me';
 
   // App Settings
   static const String languageCode = 'language_code';
@@ -25,4 +26,6 @@ class StorageKeys {
   // Cache
   static const String lastSyncTime = 'last_sync_time';
   static const String cachedUserData = 'cached_user_data';
+
+
 }

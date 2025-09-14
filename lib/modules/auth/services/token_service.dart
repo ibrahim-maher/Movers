@@ -17,6 +17,10 @@ class TokenService extends GetxService {
     await _storage.write(_userKey, userData);
   }
 
+  Future<void> saveToken(String token) async {
+    await _storage.write(_tokenKey, token);
+    print('✅ Token saved: $token');
+  }
   // Get auth token
   String? getToken() {
     return _storage.read<String>(_tokenKey);

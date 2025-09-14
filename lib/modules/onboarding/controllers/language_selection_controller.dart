@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../models/language_model.dart';
 import '../../../shared/services/language/language_service.dart';
+import '../../../shared/services/storage/local_storage_service.dart';
+import '../../../core/constants/storage_keys.dart';
+import '../../../routes/app_routes.dart';
+import '../models/language_model.dart';
 
 class LanguageSelectionController extends GetxController {
   final LanguageService _languageService = Get.find<LanguageService>();
+  final LocalStorageService _storageService = Get.find<LocalStorageService>();
 
   final RxList<LanguageModel> availableLanguages = <LanguageModel>[].obs;
   final Rx<LanguageModel?> selectedLanguage = Rx<LanguageModel?>(null);
@@ -59,13 +63,20 @@ class LanguageSelectionController extends GetxController {
     selectedLanguage.value = availableLanguages.firstWhereOrNull(
           (lang) => lang.locale == currentLocale,
     ) ?? availableLanguages.first;
+    print('📖 Loaded current language: ${selectedLanguage.value?.code}');
   }
 
   Future<void> changeLanguage(LanguageModel language) async {
-    if (selectedLanguage.value == language) return;
+    if (selectedLanguage.value == language) {
+      print('⚠️ Language ${language.code} already selected, skipping');
+      // Navigate to the next screen if the same language is selected
+      await _proceedToNextScreen();
+      return;
+    }
 
     try {
       isChanging.value = true;
+      print('🌐 Changing language to: ${language.code}');
 
       // Change app locale
       await Get.updateLocale(language.locale);
@@ -76,6 +87,10 @@ class LanguageSelectionController extends GetxController {
       // Update selected language
       selectedLanguage.value = language;
 
+      // Mark as not first time
+      await _storageService.setBool(StorageKeys.isFirstTime, false);
+      print('✅ Set isFirstTime to false');
+
       // Show success message
       Get.snackbar(
         'Success'.tr,
@@ -84,11 +99,11 @@ class LanguageSelectionController extends GetxController {
         duration: const Duration(seconds: 2),
       );
 
-      // Go back to previous screen
-      await Future.delayed(const Duration(milliseconds: 500));
-      Get.back();
+      // Proceed to the next screen
+      await _proceedToNextScreen();
 
     } catch (e) {
+      print('❌ Failed to change language: $e');
       Get.snackbar(
         'Error'.tr,
         'Failed to change language'.tr,
@@ -97,6 +112,23 @@ class LanguageSelectionController extends GetxController {
     } finally {
       isChanging.value = false;
     }
+  }
+
+  Future<void> _proceedToNextScreen() async {
+    // Check onboarding status to determine the next route
+    final hasCompletedOnboarding = _storageService.getBool(
+      StorageKeys.hasCompletedOnboarding,
+      defaultValue: false,
+    );
+    print('📋 Onboarding completed: $hasCompletedOnboarding');
+
+    final nextRoute =
+    hasCompletedOnboarding ? AppRoutes.LOGIN : AppRoutes.ONBOARDING;
+    print('🧭 Navigating to: $nextRoute');
+
+    // Delay navigation slightly for better UX
+    await Future.delayed(const Duration(milliseconds: 500));
+    Get.offAllNamed(nextRoute);
   }
 
   bool isSelected(LanguageModel language) {

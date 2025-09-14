@@ -1,6 +1,10 @@
+// ===================================
+// main.dart - FIXED VERSION
+// ===================================
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'core/config/firebase_config.dart';
 import 'core/themes/app_theme.dart';
 import 'routes/app_pages.dart';
@@ -12,9 +16,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
-  await Firebase.initializeApp(
-    options: FirebaseConfig.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: FirebaseConfig.currentPlatform,
+    );
+    print('Firebase initialized successfully');
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+  }
+
+  // Initialize GetStorage
+  await GetStorage.init('MoversApp');
 
   runApp(const MyApp());
 }
@@ -32,10 +44,17 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       translations: AppTranslations(),
-      locale: Get.deviceLocale,
+      locale: const Locale('en', 'US'),
       fallbackLocale: const Locale('en', 'US'),
       initialRoute: AppRoutes.SPLASH,
       getPages: AppPages.routes,
+      // Add this to prevent navigation issues
+      unknownRoute: GetPage(
+        name: '/not-found',
+        page: () => const Scaffold(
+          body: Center(child: Text('Page not found')),
+        ),
+      ),
     );
   }
 }
