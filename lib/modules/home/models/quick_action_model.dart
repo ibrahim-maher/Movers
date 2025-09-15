@@ -1,65 +1,113 @@
+// lib/modules/home/models/quick_action_model.dart
+
 import 'package:flutter/material.dart';
 
-/// QuickAction model class
-class QuickAction {
+class QuickActionModel {
+  final String id;
   final String title;
   final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback? onTap;
+  final String icon;
+  final String color;
+  final String route;
+  final bool isEnabled;
+  final int? badge;
 
-  QuickAction({
+  const QuickActionModel({
+    required this.id,
     required this.title,
-    this.subtitle = '',
-    this.icon = Icons.info,
-    this.color = const Color(0xFF000000),
-    this.onTap,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.route,
+    this.isEnabled = true,
+    this.badge,
   });
 
-  /// Factory method to create from a Map (like JSON)
-  factory QuickAction.fromMap(Map<String, dynamic> map) {
-    return QuickAction(
-      title: map['title']?.toString() ?? '',
-      subtitle: map['subtitle']?.toString() ?? '',
-      icon: _getIconFromString(map['icon']?.toString() ?? 'info'),
-      color: Color(map['color'] ?? 0xFF000000),
-      onTap: map['onTap'] as VoidCallback?,
+  factory QuickActionModel.fromMap(Map<String, dynamic> map) {
+    return QuickActionModel(
+      id: map['id'] ?? '',
+      title: map['title'] ?? '',
+      subtitle: map['subtitle'] ?? '',
+      icon: map['icon'] ?? '',
+      color: map['color'] ?? '#000000',
+      route: map['route'] ?? '',
+      isEnabled: map['isEnabled'] ?? true,
+      badge: map['badge']?.toInt(),
     );
   }
 
-  /// Convert to Map if needed
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'title': title,
       'subtitle': subtitle,
-      'icon': icon.toString(), // optional: just for reference
-      'color': color.value,
-      'onTap': onTap,
+      'icon': icon,
+      'color': color,
+      'route': route,
+      'isEnabled': isEnabled,
+      'badge': badge,
     };
   }
 
-  /// Private helper to map string to IconData
-  static IconData _getIconFromString(String iconName) {
-    switch (iconName) {
-      case 'home':
-        return Icons.home;
-      case 'info':
-        return Icons.info;
-      case 'settings':
-        return Icons.settings;
-      case 'add':
-        return Icons.add;
-      case 'delete':
-        return Icons.delete;
-      case 'person':
-        return Icons.person;
-      case 'message':
-        return Icons.message;
-      case 'search':
-        return Icons.search;
-    // Add more mappings here as needed
-      default:
-        return Icons.info;
+  Color get colorValue {
+    try {
+      return Color(int.parse(color.replaceFirst('#', '0xFF')));
+    } catch (e) {
+      return Colors.blue;
     }
+  }
+
+  QuickActionModel copyWith({
+    String? id,
+    String? title,
+    String? subtitle,
+    String? icon,
+    String? color,
+    String? route,
+    bool? isEnabled,
+    int? badge,
+  }) {
+    return QuickActionModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
+      route: route ?? this.route,
+      isEnabled: isEnabled ?? this.isEnabled,
+      badge: badge ?? this.badge,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'QuickActionModel(id: $id, title: $title, subtitle: $subtitle, icon: $icon, color: $color, route: $route, isEnabled: $isEnabled, badge: $badge)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is QuickActionModel &&
+        other.id == id &&
+        other.title == title &&
+        other.subtitle == subtitle &&
+        other.icon == icon &&
+        other.color == color &&
+        other.route == route &&
+        other.isEnabled == isEnabled &&
+        other.badge == badge;
+  }
+
+  @override
+  int get hashCode {
+    return id.hashCode ^
+    title.hashCode ^
+    subtitle.hashCode ^
+    icon.hashCode ^
+    color.hashCode ^
+    route.hashCode ^
+    isEnabled.hashCode ^
+    badge.hashCode;
   }
 }

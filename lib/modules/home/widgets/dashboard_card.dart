@@ -1,79 +1,179 @@
+// lib/modules/home/widgets/dashboard_card.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../models/dashboard_stats_model.dart';
 
 class DashboardCard extends StatelessWidget {
-  final DashboardStatsModel stats;
+  final String title;
+  final String subtitle;
+  final String status;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final Widget? icon;
+  final Color? statusColor;
+  final String? timestamp;
 
-  const DashboardCard({super.key, required this.stats});
+  const DashboardCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.status,
+    this.trailing,
+    this.onTap,
+    this.icon,
+    this.statusColor,
+    this.timestamp,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Dashboard Stats'.tr,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                _buildStatItem(context, 'Total Loads', stats.totalLoads.toString(), Icons.local_shipping),
-                _buildStatItem(context, 'Active Rides', stats.activeRides.toString(), Icons.directions_car),
+                if (icon != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: icon,
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (timestamp != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          timestamp!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(theme).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _getStatusText(),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: _getStatusColor(theme),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (trailing != null) ...[
+                      const SizedBox(height: 8),
+                      trailing!,
+                    ],
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildStatItem(context, 'Pending Parcels', stats.pendingParcels.toString(), Icons.add_box),
-                _buildStatItem(context, 'Completed Deliveries', stats.completedDeliveries.toString(), Icons.check_circle),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildStatItem(context, 'Total Earnings', '\$${stats.totalEarnings.toStringAsFixed(2)}', Icons.attach_money),
-                _buildStatItem(context, 'Monthly Earnings', '\$${stats.monthlyEarnings.toStringAsFixed(2)}', Icons.account_balance_wallet),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String title, String value, IconData icon) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 8),
-          Text(
-            title.tr,
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
+  Color _getStatusColor(ThemeData theme) {
+    if (statusColor != null) return statusColor!;
+
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'confirmed':
+      case 'active':
+      case 'available':
+        return Colors.blue;
+      case 'in_progress':
+      case 'in_transit':
+        return Colors.purple;
+      case 'completed':
+      case 'delivered':
+        return Colors.green;
+      case 'cancelled':
+      case 'failed':
+        return Colors.red;
+      default:
+        return theme.colorScheme.primary;
+    }
+  }
+
+  String _getStatusText() {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'pending'.tr;
+      case 'confirmed':
+        return 'confirmed'.tr;
+      case 'active':
+        return 'active'.tr;
+      case 'available':
+        return 'available'.tr;
+      case 'in_progress':
+        return 'in_progress'.tr;
+      case 'in_transit':
+        return 'in_transit'.tr;
+      case 'completed':
+        return 'completed'.tr;
+      case 'delivered':
+        return 'delivered'.tr;
+      case 'cancelled':
+        return 'cancelled'.tr;
+      case 'failed':
+        return 'failed'.tr;
+      default:
+        return status.tr;
+    }
   }
 }

@@ -1,221 +1,225 @@
+// lib/modules/load/pages/loads_list_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-import '../controllers/load_list_controller.dart';
+import '../controllers/load_controller.dart';
 import '../widgets/load_card.dart';
-import '../widgets/load_item.dart';
 
-class LoadsListPage extends GetView<LoadListController> {
+class LoadsListPage extends GetView<LoadController> {
   const LoadsListPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Loads'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterBottomSheet,
+        backgroundColor: theme.primaryColor,
+        foregroundColor: Colors.white,
+        title: Text(
+          'My Loads',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.refreshLoads,
-          ),
-        ],
+        ),
+        centerTitle: true,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Get.back(),
+        ),
       ),
       body: Column(
         children: [
-          _buildSearchBar(),
+          _buildTabBar(theme),
           Expanded(
-            child: _buildLoadsList(),
+            child: Obx(() => controller.isLoading.value
+                ? const Center(child: CircularProgressIndicator())
+                : _buildLoadsList(theme)),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: controller.navigateToCreateLoad,
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: TextField(
-        controller: controller.searchController,
-        decoration: InputDecoration(
-          hintText: 'Search loads...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: Obx(() => controller.searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => controller.searchController.clear(),
-                )
-              : const SizedBox.shrink()),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0.0),
+  Widget _buildTabBar(ThemeData theme) {
+    return Container(
+      color: theme.primaryColor,
+      child: TabBar(
+        controller: controller.tabController,
+        tabs: const [
+          Tab(text: 'MY CURRENT LOADS'),
+          Tab(text: 'COMPLETED'),
+        ],
+        indicatorColor: Colors.white,
+        indicatorWeight: 3,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white70,
+        labelStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
   }
 
-  Widget _buildLoadsList() {
+  Widget _buildLoadsList(ThemeData theme) {
+    return RefreshIndicator(
+      onRefresh: controller.refreshLoads,
+      color: theme.primaryColor,
+      child: TabBarView(
+        controller: controller.tabController,
+        children: [
+          _buildCurrentLoadsTab(theme),
+          _buildCompletedLoadsTab(theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentLoadsTab(ThemeData theme) {
     return Obx(() {
-      if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
-      }
+      final loads = controller.myCurrentLoads;
 
-      if (controller.errorMessage.isNotEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Error: ${controller.errorMessage.value}',
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: controller.refreshLoads,
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+      if (loads.isEmpty) {
+        return _buildEmptyState(
+          icon: Icons.inventory_2_outlined,
+          title: 'No Current Loads',
+          subtitle: 'Create your first load to get started',
+          actionText: 'Create Load',
+          onAction: controller.navigateToCreateLoad,
         );
       }
 
-      if (controller.filteredLoads.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.inbox, size: 64.0, color: Colors.grey),
-              const SizedBox(height: 16.0),
-              const Text(
-                'No loads found',
-                style: TextStyle(fontSize: 18.0),
-              ),
-              const SizedBox(height: 8.0),
-              if (controller.searchQuery.isNotEmpty ||
-                  controller.selectedCategoryId.isNotEmpty ||
-                  controller.selectedStatusId.isNotEmpty)
-                TextButton(
-                  onPressed: controller.clearFilters,
-                  child: const Text('Clear Filters'),
-                ),
-            ],
-          ),
-        );
-      }
-
-      return RefreshIndicator(
-        onRefresh: controller.refreshLoads,
-        child: ListView.builder(
-          padding: const EdgeInsets.only(bottom: 80.0), // For FAB
-          itemCount: controller.filteredLoads.length,
-          itemBuilder: (context, index) {
-            final load = controller.filteredLoads[index];
-            return LoadItem(
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: loads.length,
+        itemBuilder: (context, index) {
+          final load = loads[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: LoadCard(
               load: load,
-              onTap: () => controller.navigateToLoadDetails(load.id),
-            );
-          },
-        ),
+              onTap: () => controller.navigateToLoadDetails(load),
+              onEdit: () => controller.navigateToEditLoad(load),
+              onDelete: () => controller.deleteLoad(load),
+              showActions: true,
+            ),
+          );
+        },
       );
     });
   }
 
-  void _showFilterBottomSheet() {
-    Get.bottomSheet(
-      Obx(() => Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Get.theme.colorScheme.surface,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16.0),
+  Widget _buildCompletedLoadsTab(ThemeData theme) {
+    return Obx(() {
+      final loads = controller.completedLoads;
+
+      if (loads.isEmpty) {
+        return _buildEmptyState(
+          icon: Icons.check_circle_outline,
+          title: 'No Completed Loads',
+          subtitle: 'Your completed loads will appear here',
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: loads.length,
+        itemBuilder: (context, index) {
+          final load = loads[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: LoadCard(
+              load: load,
+              onTap: () => controller.navigateToLoadDetails(load),
+              showActions: false,
+            ),
+          );
+        },
+      );
+    });
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    String? actionText,
+    VoidCallback? onAction,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 60,
+                color: Colors.grey.shade400,
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Filter Loads',
-                      style: Get.textTheme.titleLarge,
-                    ),
-                    TextButton(
-                      onPressed: controller.clearFilters,
-                      child: const Text('Clear All'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16.0),
-                Text(
-                  'Categories',
-                  style: Get.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8.0),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: controller.categories.map((category) {
-                      final isSelected =
-                          controller.selectedCategoryId.value == category.id;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: FilterChip(
-                          label: Text(category.name),
-                          selected: isSelected,
-                          onSelected: (_) =>
-                              controller.selectCategory(category.id),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                Text(
-                  'Status',
-                  style: Get.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8.0),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: controller.statuses.map((status) {
-                      final isSelected =
-                          controller.selectedStatusId.value == status.id;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: FilterChip(
-                          label: Text(status.name),
-                          selected: isSelected,
-                          onSelected: (_) =>
-                              controller.selectStatus(status.id),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Get.back(),
-                    child: const Text('Apply Filters'),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
             ),
-          )),
-      isScrollControlled: true,
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (actionText != null && onAction != null) ...[
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: onAction,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Get.theme.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  actionText,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

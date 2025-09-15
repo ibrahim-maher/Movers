@@ -4,6 +4,7 @@ class AppTranslations extends Translations {
   @override
   Map<String, Map<String, String>> get keys => {
     'en_US': {
+
       // Common
       'app_name': 'Movers App',
       'welcome': 'Welcome',
@@ -34,7 +35,17 @@ class AppTranslations extends Translations {
       // Splash
       'loading': 'Loading...',
       'initializing': 'Initializing...',
-
+// For LoadCard translations
+      'tr_fixed': 'Fixed',
+      'tr_per_tonne': '/Tonne',
+      'tr_pickup': 'Pickup',
+      'tr_drop': 'Drop',
+      'tr_created': 'Created',
+      'tr_today': 'today',
+      'tr_yesterday': 'yesterday',
+      'tr_days_ago': '{days} days ago',
+      'tr_confirmed': 'Confirmed',
+      'tr_cancelled': 'Cancelled',
       // Auth
       'sign_in': 'Sign In',
       'sign_up': 'Sign Up',
